@@ -319,13 +319,7 @@ static void out_data_cb(Stream *stream, RBuffer *buf, size_t count, void *data,
     return;
   }
 
-  size_t written = write_output(ptr, cnt, false, eof);
-  // No output written, force emptying the Rbuffer if it is full.
-  if (!written && rbuffer_size(buf) == rbuffer_capacity(buf)) {
-    screen_del_lines(0, 0, 1, (int)Rows, NULL);
-    screen_puts_len((char_u *)ptr, (int)cnt, (int)Rows - 1, 0, 0);
-    written = cnt;
-  }
+  size_t written = write_output_screen(ptr, cnt);
   if (written) {
     rbuffer_consumed(buf, written);
   }
@@ -438,6 +432,21 @@ static void read_input(DynamicBuffer *buf)
       written += len;
     }
   }
+}
+
+static size_t write_output_screen(char *output, size_t remaining)
+{
+  if (!output) {
+    return 0;
+  }
+
+  int lastrow = (int)Rows - 1;
+
+  screen_del_lines(0, 0, 1, (int)Rows, NULL);
+  screen_puts_len((char_u *)output, (int)remaining, lastrow, 0, 0);
+  ui_flush();
+
+  return remaining;
 }
 
 static size_t write_output(char *output, size_t remaining, bool to_buffer,
